@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
+using System.Data;
 using System.Linq;
 using System.Reflection;
 
@@ -16,7 +17,28 @@ namespace EfCoreLike
 
         public static void Register(ModelBuilder modelBuider)
         {
-            var methodInfo = typeof(MyDbFunctions)
+            var convertMethodInfo = GetMethodInfoForConvert();
+            modelBuider
+                .HasDbFunction(convertMethodInfo)
+                .HasTranslation(args =>
+                {
+                    var arguments = args.ToArray();
+                    var sqlTypeName = (string)((SqlConstantExpression)arguments[1]).Value;
+                    return SqlFunctionExpression.Create(
+                        convertMethodInfo.Name,
+                        new[]
+                        {
+                            new SqlFragmentExpression($"{sqlTypeName}(max)"),
+                            arguments[0],
+                            arguments[2]
+                        },
+                        convertMethodInfo.ReturnType,
+                        new StringTypeMapping(sqlTypeName, DbType.String));
+                });
+        }
+
+        private static MethodInfo GetMethodInfoForConvert() =>
+            typeof(MyDbFunctions)
                 .GetRuntimeMethod(
                     nameof(Convert),
                     new[]
@@ -25,20 +47,5 @@ namespace EfCoreLike
                         typeof(string),
                         typeof(int)
                     });
-
-            modelBuider.HasDbFunction(methodInfo)
-                .HasTranslation(args =>
-                    SqlFunctionExpression.Create(
-                        methodInfo.Name,
-                        new[]
-                        {
-                            new SqlFragmentExpression("VARCHAR(max)"),
-                            args.First()
-                        },
-                        typeof(string),
-                        new SqlServerStringTypeMapping()));
-
-            // TODO: Investigate if we can avoid using internal class SqlServerStringTypeMapping.
-        }
     }
 }

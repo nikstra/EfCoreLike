@@ -35,7 +35,10 @@ namespace EfCoreLike
                         $" {person.PostCode} {person.City}, {person.Country}," +
                         $" {person.BirthDate.ToString("yyyy-MM-dd")}, {person.JoinDate.ToString("yyyy-MM-dd")}");
                 }
-                Console.WriteLine();
+
+                Console.WriteLine(result.Any()
+                    ? string.Empty
+                    : "Nothing found." + Environment.NewLine);
             }
         }
 
@@ -50,8 +53,8 @@ namespace EfCoreLike
                     EF.Functions.Like(p.PostCode, pattern) ||
                     EF.Functions.Like(p.City, pattern) ||
                     EF.Functions.Like(p.Country, pattern) ||
-                    EF.Functions.Like(p.BirthDate.Convert("string", TSQL_ISO8601_DATE_FORMAT), pattern) ||
-                    EF.Functions.Like(p.JoinDate.Convert("string", TSQL_ISO8601_DATE_FORMAT), pattern));
+                    EF.Functions.Like(p.BirthDate.Convert("VARCHAR", TSQL_ISO8601_DATE_FORMAT), pattern) ||
+                    EF.Functions.Like(p.JoinDate.Convert("VARCHAR", TSQL_ISO8601_DATE_FORMAT), pattern));
         }
     }
 }
